@@ -1,0 +1,24 @@
+# Python cache and build files
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Python environments
+.venv/
+venv/
+env/
+
+# Development tools
+.spyproject/
+.pytest_cache/
+.ipynb_checkpoints/
+.vscode/
+
+# Local configuration
+.env
+
+# Operating system
+.DS_Store
+Thumbs.db

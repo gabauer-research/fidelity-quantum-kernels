@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fidelity-quantum-kernels"
+version = "0.1.0"
+description = "Spectral analysis of fidelity quantum kernels"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy",
+    "scipy",
+    "pandas",
+    "matplotlib",
+    "qiskit>=2,<3"
+]
+
+[tool.setuptools]
+packages = ["qfk"]
