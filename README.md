@@ -44,8 +44,11 @@ Here $\lambda_i$ are the eigenvalues of $K$, ordered from largest to smallest. T
 [`experiments/reference_grid.py`](experiments/reference_grid.py) evaluates a two-qubit feature map on the deterministic Cartesian product grid
 
 $$
-\Theta_5\times\Theta_5,\qquad
-\Theta_5=\left\{0,\frac{\pi}{4},\frac{\pi}{2},\frac{3\pi}{4},\pi\right\}.
+\Theta_5 \times \Theta_5,\qquad
+\Theta_5 =
+\left\lbrace
+0,\frac{\pi}{4},\frac{\pi}{2},\frac{3\pi}{4},\pi
+\right\rbrace.
 $$
 
 The script computes fidelity Gram matrices for the separable reference, interleaved CNOT, and interleaved CZ constructions. It reports eigenvalues, numerical rank, effective rank, leading spectral weight, off-diagonal kernel statistics, and relative low-rank approximation errors.
