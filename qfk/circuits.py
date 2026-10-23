@@ -8,44 +8,16 @@ from qiskit import QuantumCircuit
 
 
 def add_encoding_layer(qc: QuantumCircuit, x) -> None:
-    """Apply an RY angle-encoding layer in place.
-
-    Each input coordinate controls the Y rotation of the corresponding qubit.
-
-    Parameters
-    ----------
-    qc : QuantumCircuit
-        Circuit to which the encoding operations are appended.
-    x : array-like of float
-        Input angles, ordered by qubit index. The input is expected to
-        contain one angle per qubit.
-
-    Returns
-    -------
-    None
-        The input circuit is modified in place.
-    """
+    """Apply in-place RY rotations using input angles indexed by qubit."""
     for qubit, angle in enumerate(x):
         qc.ry(float(angle), qubit)
 
 
 def add_entangling_layer(qc: QuantumCircuit, entangler: str | None) -> None:
-    """Append a nearest-neighbour CNOT or CZ chain in place.
+    """Append an in-place nearest-neighbour CNOT or CZ chain.
 
-    Adjacent qubits are coupled in ascending index order. For CNOT gates,
-    qubit ``j`` is the control and qubit ``j + 1`` the target.
-
-    Parameters
-    ----------
-    qc : QuantumCircuit
-        Circuit to which the entangling operations are appended.
-    entangler : {'cnot', 'cz', None}
-        Entangling gate type. ``None`` leaves the circuit unchanged.
-
-    Raises
-    ------
-    ValueError
-        If the entangler is not one of the supported choices.
+    For CNOT, qubit ``j`` controls ``j + 1``. ``None`` adds no gates;
+    unsupported entanglers raise ``ValueError``.
     """
     q = qc.num_qubits
 
