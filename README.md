@@ -6,6 +6,10 @@ This repository investigates how quantum feature-map architecture and circuit de
 
 The current release contains the analytical-reference validation and the entangling-depth study. Additional parameter studies are not included in this version.
 
+## Research question
+
+How do quantum feature-map architecture, interleaved circuit depth, and input sampling geometry influence the spectral structure and effective complexity of finite-sample fidelity quantum kernels?
+
 ## Mathematical setting
 
 For classical inputs $\mathbf{x}$ and $\mathbf{y}$, the fidelity quantum kernel is
@@ -44,11 +48,8 @@ Here $\lambda_i$ are the eigenvalues of $K$, ordered from largest to smallest. T
 [`experiments/reference_grid.py`](experiments/reference_grid.py) evaluates a two-qubit feature map on the deterministic Cartesian product grid
 
 $$
-\Theta_5 \times \Theta_5,\qquad
-\Theta_5 =
-\left\lbrace
-0,\frac{\pi}{4},\frac{\pi}{2},\frac{3\pi}{4},\pi
-\right\rbrace.
+\Theta_5\times\Theta_5,\qquad
+\Theta_5=\left\{0,\frac{\pi}{4},\frac{\pi}{2},\frac{3\pi}{4},\pi\right\}.
 $$
 
 The script computes fidelity Gram matrices for the separable reference, interleaved CNOT, and interleaved CZ constructions. It reports eigenvalues, numerical rank, effective rank, leading spectral weight, off-diagonal kernel statistics, and relative low-rank approximation errors.
@@ -74,6 +75,14 @@ Two input settings are evaluated:
 Each entangling layer is followed by another input-dependent $R_y$ encoding layer. Consequently, changing $L$ changes **both** the entangling depth and the number of data re-uploading layers; the experiment does not isolate the effect of entanglement alone.
 
 The study produces per-configuration spectral diagnostics, raw results, across-seed means and standard deviations, eigenvalue spectra for the grid experiment, and PDF figures.
+
+## Selected findings
+
+- **Analytical bounds are attained on the reference grid.** For the separable and single-CNOT feature maps, the numerical Gram-matrix ranks are 9 and 10, respectively, matching the analytically derived upper bounds. Their effective ranks are approximately 4.0555 and 4.3967.
+- **Effective complexity varies without a corresponding change in numerical rank.** On the deterministic grid, both entangling circuit families have numerical rank 10 across the investigated depths, but their effective ranks depend non-monotonically on depth. For CNOT, the effective rank changes from 2.8482 at $L=3$ to 5.7479 at $L=4$.
+- **The depth dependence persists for random inputs.** Across 20 uniformly sampled datasets, the mean CNOT effective rank is $3.0277 \pm 0.3081$ at $L=3$ and $4.5204 \pm 0.5166$ at $L=5$ (mean $\pm$ standard deviation). The quantitative behaviour differs from the deterministic grid.
+
+These observations concern the spectra of the tested finite-sample Gram matrices. Because each additional entangling layer is accompanied by another encoding layer, they do not establish a separate causal effect of entanglement or imply an improvement in downstream predictive performance.
 
 ## Repository structure
 
