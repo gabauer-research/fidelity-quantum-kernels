@@ -14,7 +14,7 @@ How do quantum feature-map structure and input geometry determine the spectral c
 
 For classical inputs $\mathbf{x}$ and $\mathbf{y}$, the fidelity quantum kernel is
 
-$$
+```math
 k_Q(\mathbf{x},\mathbf{y})
 =
 \left|
@@ -23,20 +23,20 @@ k_Q(\mathbf{x},\mathbf{y})
 \mid
 \psi(\mathbf{y})
 \rangle
-\right|^2,
-$$
+\right|^2 .
+```
 
-where $\lvert\psi(\mathbf{x})\rangle$ is prepared by an input-dependent quantum feature map. Given samples $\{\mathbf{x}_i\}_{i=1}^n$, the associated Gram matrix is
+Given samples $\{\mathbf{x}_i\}_{i=1}^n$, the associated Gram matrix is
 
-$$
+```math
 K_{ij}
 =
 k_Q(\mathbf{x}_i,\mathbf{x}_j).
-$$
+```
 
 The experiments examine numerical rank, spectral concentration, and low-rank approximability. In particular, **effective rank** refers here to the participation ratio
 
-$$
+```math
 r_{\mathrm{eff}}(K)
 =
 \frac{
@@ -44,13 +44,13 @@ r_{\mathrm{eff}}(K)
 }{
 \sum_i \lambda_i^2
 },
-$$
+```
 
 rather than the entropy-based effective rank.
 
 The relative error of the optimal rank-$r$ spectral approximation is measured in Frobenius norm:
 
-$$
+```math
 \varepsilon_r
 =
 \sqrt{
@@ -60,7 +60,7 @@ $$
 \sum_i\lambda_i^2
 }
 }.
-$$
+```
 
 Here $\lambda_i$ are the eigenvalues of $K$, ordered from largest to smallest. The implementation uses an absolute numerical-rank threshold of $10^{-10}$.
 
@@ -70,7 +70,7 @@ Here $\lambda_i$ are the eigenvalues of $K$, ordered from largest to smallest. T
 
 [`experiments/reference_grid.py`](experiments/reference_grid.py) evaluates two-qubit feature maps on the deterministic Cartesian product grid
 
-$$
+```math
 \Theta_5 \times \Theta_5,
 \qquad
 \Theta_5
@@ -82,23 +82,23 @@ $$
 \frac{3\pi}{4},
 \pi
 \right\}.
-$$
+```
 
 The script computes fidelity Gram matrices for the separable reference, interleaved CNOT, and interleaved CZ constructions. It reports eigenvalues, numerical rank, effective rank, leading spectral weight, off-diagonal kernel statistics, and relative low-rank approximation errors.
 
 For the separable construction, the analytically derived Cartesian-product structure predicts
 
-$$
+```math
 K_{\mathrm{sep}}
 =
 K_{\mathrm{1D}}
 \otimes
 K_{\mathrm{1D}}.
-$$
+```
 
 The implementation verifies this relation explicitly by comparing the directly simulated two-dimensional Gram matrix with the Kronecker product of the corresponding one-dimensional Gram matrices. On the $5\times5$ reference grid, the observed deviations are
 
-$$
+```math
 \max_{ij}
 \left|
 (K_{\mathrm{sep}})_{ij}
@@ -107,11 +107,11 @@ $$
 \right|
 =
 5.551\times10^{-16},
-$$
+```
 
 and
 
-$$
+```math
 \left\|
 K_{\mathrm{sep}}
 -
@@ -119,7 +119,7 @@ K_{\mathrm{1D}}\otimes K_{\mathrm{1D}}
 \right\|_F
 =
 2.265\times10^{-15},
-$$
+```
 
 confirming agreement up to numerical precision.
 
@@ -132,17 +132,15 @@ The separable and single-CNOT constructions reproduce the following reference va
 
 The analytical rank bounds follow from the respective fidelity-feature representations; the script provides numerical consistency checks rather than symbolic proofs.
 
-The complete compact numerical summary is written to
-
-[`results/reference_grid/reference_grid_summary.csv`](results/reference_grid/reference_grid_summary.csv).
+The complete compact numerical summary is written to [`results/reference_grid/reference_grid_summary.csv`](results/reference_grid/reference_grid_summary.csv).
 
 ### 2. Entangling-depth study
 
 [`experiments/depth.py`](experiments/depth.py) compares interleaved CNOT and CZ constructions for
 
-$$
+```math
 L\in\{1,2,3,4,5\},
-$$
+```
 
 using the separable map at $L=0$ as a common reference.
 
@@ -170,17 +168,18 @@ These observations concern the spectra of the tested finite-sample Gram matrices
 .
 ├── qfk/
 │   ├── __init__.py
-│   ├── data.py            # Synthetic input data
-│   ├── circuits.py        # Ry feature maps with optional CNOT/CZ layers
-│   ├── kernels.py         # Statevectors and fidelity Gram matrices
-│   └── spectral.py        # Eigenvalue-based diagnostics
+│   ├── data.py
+│   ├── circuits.py
+│   ├── kernels.py
+│   └── spectral.py
 ├── experiments/
-│   ├── reference_grid.py  # Analytical-reference validation
-│   └── depth.py           # Entangling-depth experiments
+│   ├── reference_grid.py
+│   └── depth.py
 ├── results/
 │   ├── reference_grid/
 │   │   └── reference_grid_summary.csv
-│   └── depth/             # CSV results and PDF figures
+│   └── depth/
+│       └── ...
 ├── pyproject.toml
 └── README.md
 ```
@@ -195,8 +194,6 @@ From the repository root, install the package in editable mode:
 python -m pip install -e .
 ```
 
-Editable installation allows the experiment scripts to import `qfk` when executed directly from an IDE as well as from the command line.
-
 ## Reproducing the experiments
 
 Run the following commands from the repository root:
@@ -208,15 +205,13 @@ python -m experiments.depth
 
 ### Reference-grid outputs
 
-The reference-grid experiment prints the detailed diagnostics to the console and writes the compact summary
+The reference-grid experiment prints detailed diagnostics to the console and writes the compact summary to
 
-[`results/reference_grid/reference_grid_summary.csv`](results/reference_grid/reference_grid_summary.csv).
-
-The summary contains the principal spectral diagnostics for the separable, CNOT, and CZ constructions together with the Kronecker-product validation errors for the separable reference case.
+`results/reference_grid/reference_grid_summary.csv`.
 
 ### Depth-study outputs
 
-The depth experiment writes its outputs to [`results/depth/`](results/depth/), including:
+The depth experiment writes its outputs to `results/depth/`, including:
 
 | File | Description |
 | :-- | :-- |
@@ -228,8 +223,6 @@ The depth experiment writes its outputs to [`results/depth/`](results/depth/), i
 | `effective_rank_vs_depth_random.pdf` | Random-input effective rank with standard-deviation error bars |
 | `largest_weight_vs_depth.pdf` | Grid-based leading spectral weight versus depth |
 | `largest_weight_vs_depth_random.pdf` | Random-input leading spectral weight with standard-deviation error bars |
-
-The output directories are resolved relative to the repository rather than the shell's working directory. Figures are saved as PDF; whether they also appear in a separate window depends on the active Matplotlib backend.
 
 ## Methodological scope
 
