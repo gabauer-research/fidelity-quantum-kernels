@@ -1,0 +1,8 @@
+parameter,value
+input_geometry,Clustered
+q,4
+d,4
+n,25
+seed,42
+entangling_depth,1
+encoding_interval,"[0, pi]"
