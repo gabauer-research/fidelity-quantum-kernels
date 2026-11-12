@@ -1,25 +1,9 @@
-"""System-size and input-dimension scaling experiments.
+"""Spectral scaling experiments for fidelity quantum kernels.
 
-This script reproduces the three controlled scaling experiments used in
-Section 4.4 of the thesis:
-
-1. Joint scaling of qubit number and input dimension:
-       q = d in {2, 3, 4, 5, 6}
-
-2. Input-dimension scaling at fixed system size:
-       q = 6
-       d in {1, 2, 3, 4, 5, 6}
-
-3. Qubit-number scaling at fixed input dimension:
-       d = 2
-       q in {2, 3, 4, 5, 6}
-
-All experiments use n = 25 uniformly sampled inputs, entangling depth L = 1
-for the CNOT and CZ feature maps, and 20 fixed random seeds.
-
-For configurations with d < q, only the first d qubits receive
-sample-dependent input coordinates. The remaining qubits receive the fixed
-rotation angle pi/2.
+Compare joint qubit/input-dimension scaling, input-dimension scaling at
+fixed qubit number, and qubit-number scaling at fixed input dimension.
+All experiments use 25 uniform samples and 20 fixed seeds. Inactive input
+coordinates are assigned pi/2; CNOT and CZ maps use one entangling layer.
 """
 
 from pathlib import Path
@@ -32,10 +16,6 @@ from qfk.data import uniform_data
 from qfk.kernels import fidelity_gram_matrix
 from qfk.spectral import spectral_metrics
 
-
-# ---------------------------------------------------------------------
-# Experimental configuration
-# ---------------------------------------------------------------------
 
 N_SAMPLES = 25
 SEEDS = range(20)
@@ -58,48 +38,27 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 RESULTS_DIR = PROJECT_ROOT / "results" / "scaling"
 
 
-# ---------------------------------------------------------------------
-# Helper functions
-# ---------------------------------------------------------------------
-
-def embed_active_dimensions(
-    X_active,
-    q,
-    fixed_angle=FIXED_ANGLE,
-):
-    """Embed d sample-dependent coordinates into a q-qubit input array."""
+def embed_active_dimensions(X_active, q, fixed_angle=FIXED_ANGLE):
+    """Fill inactive qubit coordinates with a fixed encoding angle."""
     n, d = X_active.shape
 
     if d > q:
-        raise ValueError(
-            "Input dimension d must not exceed the number of qubits q."
-        )
+        raise ValueError("Input dimension d must not exceed the number of qubits q.")
 
-    X = np.full(
-        (n, q),
-        fixed_angle,
-        dtype=float,
-    )
-
+    X = np.full((n, q), fixed_angle, dtype=float)
     X[:, :d] = X_active
 
     return X
 
 
 def evaluate_configuration(X, q, d, seed):
-    """Evaluate all three feature-map families on one input sample."""
+    """Compute spectral diagnostics for each feature map on shared inputs."""
     rows = []
 
     for name, entangler, depth in CIRCUIT_VARIANTS:
-        K = fidelity_gram_matrix(
-            X,
-            entangler=entangler,
-            depth=depth,
-        )
-
+        K = fidelity_gram_matrix(X, entangler=entangler, depth=depth)
         metrics = spectral_metrics(K)
 
-        # Numerical sanity checks for a pure-state fidelity Gram matrix.
         assert np.allclose(K, K.T, atol=1e-12)
         assert np.allclose(np.diag(K), 1.0, atol=1e-12)
         assert np.linalg.eigvalsh(K).min() >= -1e-10
@@ -124,12 +83,9 @@ def evaluate_configuration(X, q, d, seed):
 
 
 def summarise(df, grouping_columns):
-    """Compute across-seed means and standard deviations."""
+    """Aggregate spectral metrics as means and standard deviations over seeds."""
     return (
-        df.groupby(
-            [*grouping_columns, "feature_map"],
-            sort=True,
-        )
+        df.groupby([*grouping_columns, "feature_map"], sort=True)
         .agg(
             rank_mean=("rank", "mean"),
             rank_std=("rank", "std"),
@@ -150,148 +106,65 @@ def summarise(df, grouping_columns):
     )
 
 
-# ---------------------------------------------------------------------
-# Experiment 1: joint scaling q = d
-# ---------------------------------------------------------------------
-
 def run_joint_scaling():
-    """Vary qubit number and input dimension jointly."""
+    """Vary qubit number and input dimension jointly (q = d)."""
     rows = []
 
     for q in Q_VALUES:
         d = q
 
         for seed in SEEDS:
-            X = uniform_data(
-                n=N_SAMPLES,
-                d=d,
-                seed=seed,
-                low=0.0,
-                high=np.pi,
-            )
-
-            rows.extend(
-                evaluate_configuration(
-                    X=X,
-                    q=q,
-                    d=d,
-                    seed=seed,
-                )
-            )
+            X = uniform_data(n=N_SAMPLES, d=d, seed=seed, low=0.0, high=np.pi)
+            rows.extend(evaluate_configuration(X=X, q=q, d=d, seed=seed))
 
     raw = pd.DataFrame(rows)
-
-    summary = summarise(
-        raw,
-        grouping_columns=["q", "d"],
-    )
+    summary = summarise(raw, grouping_columns=["q", "d"])
 
     return raw, summary
 
 
-# ---------------------------------------------------------------------
-# Experiment 2: varying d at fixed q = 6
-# ---------------------------------------------------------------------
-
 def run_fixed_qubit_scaling():
-    """Vary the number of active input dimensions at fixed q = 6."""
+    """Vary active input dimension at fixed q = 6."""
     rows = []
 
     for d in D_VALUES:
         for seed in SEEDS:
-            X_active = uniform_data(
-                n=N_SAMPLES,
-                d=d,
-                seed=seed,
-                low=0.0,
-                high=np.pi,
-            )
-
-            X = embed_active_dimensions(
-                X_active,
-                q=Q_FIXED,
-            )
-
-            rows.extend(
-                evaluate_configuration(
-                    X=X,
-                    q=Q_FIXED,
-                    d=d,
-                    seed=seed,
-                )
-            )
+            X_active = uniform_data(n=N_SAMPLES, d=d, seed=seed, low=0.0, high=np.pi)
+            X = embed_active_dimensions(X_active, q=Q_FIXED)
+            rows.extend(evaluate_configuration(X=X, q=Q_FIXED, d=d, seed=seed))
 
     raw = pd.DataFrame(rows)
-
-    summary = summarise(
-        raw,
-        grouping_columns=["d", "q"],
-    )
+    summary = summarise(raw, grouping_columns=["d", "q"])
 
     return raw, summary
 
 
-# ---------------------------------------------------------------------
-# Experiment 3: varying q at fixed d = 2
-# ---------------------------------------------------------------------
-
 def run_fixed_dimension_scaling():
-    """Vary the number of qubits at fixed input dimension d = 2."""
+    """Vary qubit number at fixed input dimension d = 2."""
     rows = []
 
     for q in Q_VALUES:
         for seed in SEEDS:
             X_active = uniform_data(
-                n=N_SAMPLES,
-                d=D_FIXED,
-                seed=seed,
-                low=0.0,
-                high=np.pi,
+                n=N_SAMPLES, d=D_FIXED, seed=seed, low=0.0, high=np.pi
             )
-
-            X = embed_active_dimensions(
-                X_active,
-                q=q,
-            )
-
-            rows.extend(
-                evaluate_configuration(
-                    X=X,
-                    q=q,
-                    d=D_FIXED,
-                    seed=seed,
-                )
-            )
+            X = embed_active_dimensions(X_active, q=q)
+            rows.extend(evaluate_configuration(X=X, q=q, d=D_FIXED, seed=seed))
 
     raw = pd.DataFrame(rows)
-
-    summary = summarise(
-        raw,
-        grouping_columns=["q", "d"],
-    )
+    summary = summarise(raw, grouping_columns=["q", "d"])
 
     return raw, summary
 
 
-# ---------------------------------------------------------------------
-# Figures
-# ---------------------------------------------------------------------
-
 def plot_joint_scaling(summary):
-    """Plot effective rank for joint q = d scaling."""
-    markers = {
-        "Separable": "^",
-        "CNOT": "o",
-        "CZ": "s",
-    }
+    """Plot effective rank under joint q = d scaling."""
+    markers = {"Separable": "^", "CNOT": "o", "CZ": "s"}
 
     plt.figure(figsize=(6.5, 4.2))
 
     for name in markers:
-        data = summary[
-            summary["feature_map"] == name
-        ].sort_values("q")
-
+        data = summary[summary["feature_map"] == name].sort_values("q")
         plt.plot(
             data["q"],
             data["effective_rank_mean"],
@@ -304,30 +177,18 @@ def plot_joint_scaling(summary):
     plt.xticks(list(Q_VALUES))
     plt.legend()
     plt.tight_layout()
-
-    plt.savefig(
-        RESULTS_DIR / "effective_rank_joint_scaling.pdf",
-        bbox_inches="tight",
-    )
-
+    plt.savefig(RESULTS_DIR / "effective_rank_joint_scaling.pdf", bbox_inches="tight")
     plt.close()
 
 
 def plot_fixed_qubit_scaling(summary):
-    """Plot effective rank versus input dimension at fixed q = 6."""
-    markers = {
-        "Separable": "^",
-        "CNOT": "o",
-        "CZ": "s",
-    }
+    """Plot effective rank versus active input dimension at fixed q = 6."""
+    markers = {"Separable": "^", "CNOT": "o", "CZ": "s"}
 
     plt.figure(figsize=(6.5, 4.2))
 
     for name in markers:
-        data = summary[
-            summary["feature_map"] == name
-        ].sort_values("d")
-
+        data = summary[summary["feature_map"] == name].sort_values("d")
         plt.plot(
             data["d"],
             data["effective_rank_mean"],
@@ -340,30 +201,18 @@ def plot_fixed_qubit_scaling(summary):
     plt.xticks(list(D_VALUES))
     plt.legend()
     plt.tight_layout()
-
-    plt.savefig(
-        RESULTS_DIR / "effective_rank_fixed_q.pdf",
-        bbox_inches="tight",
-    )
-
+    plt.savefig(RESULTS_DIR / "effective_rank_fixed_q.pdf", bbox_inches="tight")
     plt.close()
 
 
 def plot_fixed_dimension_scaling(summary):
     """Plot effective rank versus qubit number at fixed d = 2."""
-    markers = {
-        "Separable": "^",
-        "CNOT": "o",
-        "CZ": "s",
-    }
+    markers = {"Separable": "^", "CNOT": "o", "CZ": "s"}
 
     plt.figure(figsize=(6.5, 4.2))
 
     for name in markers:
-        data = summary[
-            summary["feature_map"] == name
-        ].sort_values("q")
-
+        data = summary[summary["feature_map"] == name].sort_values("q")
         plt.plot(
             data["q"],
             data["effective_rank_mean"],
@@ -376,25 +225,12 @@ def plot_fixed_dimension_scaling(summary):
     plt.xticks(list(Q_VALUES))
     plt.legend()
     plt.tight_layout()
-
-    plt.savefig(
-        RESULTS_DIR / "effective_rank_fixed_d.pdf",
-        bbox_inches="tight",
-    )
-
+    plt.savefig(RESULTS_DIR / "effective_rank_fixed_d.pdf", bbox_inches="tight")
     plt.close()
 
 
-# ---------------------------------------------------------------------
-# Console output
-# ---------------------------------------------------------------------
-
-def print_effective_rank_summary(
-    title,
-    summary,
-    varying_column,
-):
-    """Print compact effective-rank results to the console."""
+def print_effective_rank_summary(title, summary, varying_column):
+    """Print mean effective ranks for the three feature maps."""
     print(f"\n{title}")
     print("=" * len(title))
 
@@ -407,16 +243,9 @@ def print_effective_rank_summary(
     print(table.round(4))
 
 
-# ---------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------
-
 def main():
-    """Run all system-size and input-dimension scaling experiments."""
-    RESULTS_DIR.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
+    """Run the scaling studies and save tables and figures."""
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
     print("Running scaling experiments")
     print("---------------------------")
@@ -424,64 +253,33 @@ def main():
     print(f"Random seeds:        {len(list(SEEDS))}")
     print("Entangling depth:    L = 1")
 
-    # Joint q = d scaling
     joint_raw, joint_summary = run_joint_scaling()
-
-    joint_raw.to_csv(
-        RESULTS_DIR / "joint_raw.csv",
-        index=False,
-    )
-
-    joint_summary.to_csv(
-        RESULTS_DIR / "joint_summary.csv",
-        index=False,
-    )
-
+    joint_raw.to_csv(RESULTS_DIR / "joint_raw.csv", index=False)
+    joint_summary.to_csv(RESULTS_DIR / "joint_summary.csv", index=False)
     print_effective_rank_summary(
         title="Joint scaling: q = d",
         summary=joint_summary,
         varying_column="q",
     )
 
-    # Fixed q = 6, varying d
     fixed_q_raw, fixed_q_summary = run_fixed_qubit_scaling()
-
-    fixed_q_raw.to_csv(
-        RESULTS_DIR / "fixed_q_raw.csv",
-        index=False,
-    )
-
-    fixed_q_summary.to_csv(
-        RESULTS_DIR / "fixed_q_summary.csv",
-        index=False,
-    )
-
+    fixed_q_raw.to_csv(RESULTS_DIR / "fixed_q_raw.csv", index=False)
+    fixed_q_summary.to_csv(RESULTS_DIR / "fixed_q_summary.csv", index=False)
     print_effective_rank_summary(
         title="Input-dimension scaling: fixed q = 6",
         summary=fixed_q_summary,
         varying_column="d",
     )
 
-    # Fixed d = 2, varying q
     fixed_d_raw, fixed_d_summary = run_fixed_dimension_scaling()
-
-    fixed_d_raw.to_csv(
-        RESULTS_DIR / "fixed_d_raw.csv",
-        index=False,
-    )
-
-    fixed_d_summary.to_csv(
-        RESULTS_DIR / "fixed_d_summary.csv",
-        index=False,
-    )
-
+    fixed_d_raw.to_csv(RESULTS_DIR / "fixed_d_raw.csv", index=False)
+    fixed_d_summary.to_csv(RESULTS_DIR / "fixed_d_summary.csv", index=False)
     print_effective_rank_summary(
         title="Qubit scaling: fixed d = 2",
         summary=fixed_d_summary,
         varying_column="q",
     )
 
-    # Figures
     plot_joint_scaling(joint_summary)
     plot_fixed_qubit_scaling(fixed_q_summary)
     plot_fixed_dimension_scaling(fixed_d_summary)

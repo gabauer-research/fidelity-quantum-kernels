@@ -1,24 +1,16 @@
-"""Quantum feature-map circuits for fidelity-kernel experiments.
-
-Constructs parameter-dependent state-preparation circuits using RY angle
-encoding, optional nearest-neighbour entangling gates, and data re-uploading.
-"""
+"""RY-based quantum feature maps with optional interleaved entangling layers."""
 
 from qiskit import QuantumCircuit
 
 
 def add_encoding_layer(qc: QuantumCircuit, x) -> None:
-    """Apply in-place RY rotations using input angles indexed by qubit."""
+    """Apply input-dependent RY rotations in qubit order."""
     for qubit, angle in enumerate(x):
         qc.ry(float(angle), qubit)
 
 
 def add_entangling_layer(qc: QuantumCircuit, entangler: str | None) -> None:
-    """Append an in-place nearest-neighbour CNOT or CZ chain.
-
-    For CNOT, qubit ``j`` controls ``j + 1``. ``None`` adds no gates;
-    unsupported entanglers raise ``ValueError``.
-    """
+    """Apply a nearest-neighbour CNOT or CZ chain, or no gates for ``None``."""
     q = qc.num_qubits
 
     if entangler == "cnot":
@@ -42,29 +34,27 @@ def feature_map_circuit(
     depth: int = 0,
     barriers: bool = False,
 ) -> QuantumCircuit:
-    """Build a data-reuploading quantum feature map.
+    """Construct a feature map with repeated RY data encoding.
 
-    An initial RY encoding is followed by ``depth`` repetitions of an
-    entangling layer and another RY encoding of the same input. Thus,
-    ``depth=0`` applies one encoding layer, whereas ``depth=L`` applies
-    ``L + 1`` encoding layers and ``L`` entangling layers.
+    The circuit starts with one RY encoding layer. Each of ``depth``
+    repetitions adds an entangling layer followed by another encoding
+    layer. For ``entangler=None``, no entangling gates are inserted.
 
     Parameters
     ----------
     x : array-like of float
-        Input angles. The number of coordinates determines the qubit count.
+        Input angles, one per qubit.
     entangler : {'cnot', 'cz', None}, optional
-        Nearest-neighbour entangling gate; defaults to no entangling gates.
+        Nearest-neighbour gate used between encoding layers.
     depth : int, optional
-        Number of entangling/re-uploading repetitions. Defaults to zero.
+        Number of re-uploading repetitions; ``depth=0`` uses one encoding.
     barriers : bool, optional
-        Insert circuit barriers around each entangling layer for readability.
-        Barriers do not change the ideal state prepared by the circuit.
+        Insert circuit barriers around entangling layers.
 
     Returns
     -------
     QuantumCircuit
-        Parameter-dependent state-preparation circuit.
+        Data-dependent state-preparation circuit.
     """
     q = len(x)
     qc = QuantumCircuit(q)

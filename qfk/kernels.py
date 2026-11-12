@@ -1,9 +1,4 @@
-"""Statevector-based fidelity quantum kernels.
-
-Constructs fidelity Gram matrices from parameterized quantum feature maps.
-The implementation uses exact statevector simulation and computes squared
-state overlaps for all pairs of input samples.
-"""
+"""Exact statevector fidelity kernels and Gram matrices."""
 
 import numpy as np
 from qiskit.quantum_info import Statevector
@@ -12,25 +7,21 @@ from .circuits import feature_map_circuit
 
 
 def compute_statevectors(X, entangler=None, depth=0):
-    """Evaluate quantum feature-map states for an input dataset.
-
-    Each input vector is encoded into a pure quantum state using the specified
-    feature-map circuit. Statevectors are computed without sampling noise.
+    """Evaluate feature-map states using exact statevector simulation.
 
     Parameters
     ----------
     X : array-like of shape (n_samples, n_features)
-        Input angles for the quantum feature map. Each feature corresponds to
-        one qubit.
+        Input angles, one per qubit.
     entangler : {'cnot', 'cz', None}, optional
-        Nearest-neighbour entangling gate type. ``None`` omits entanglement.
+        Nearest-neighbour entangling gate; ``None`` omits entanglement.
     depth : int, optional
-        Number of entangling and data-reuploading repetitions.
+        Number of interleaved entangling and re-encoding layers.
 
     Returns
     -------
     numpy.ndarray of complex, shape (n_samples, 2**n_features)
-        Row-wise statevectors of the encoded input samples.
+        Encoded pure-state vectors, one per row.
     """
     states = []
 
@@ -48,26 +39,25 @@ def compute_statevectors(X, entangler=None, depth=0):
 
 
 def fidelity_gram_matrix(X, entangler=None, depth=0):
-    """Compute the fidelity Gram matrix for a quantum feature map.
+    """Compute pairwise squared state overlaps for an input dataset.
 
-    For the encoded pure states ``phi(x_i)``, the kernel is defined by
-    ``K[i, j] = |<phi(x_i) | phi(x_j)>|**2``. The returned matrix is real,
-    symmetric, and positive semidefinite up to floating-point precision.
+    The fidelity kernel is ``K[i, j] = |<psi(x_i)|psi(x_j)>|**2``.
+    Its Gram matrix is real, symmetric, and positive semidefinite up to
+    floating-point precision, with unit diagonal for normalized states.
 
     Parameters
     ----------
     X : array-like of shape (n_samples, n_features)
-        Input angles used to prepare the feature-map states.
+        Input angles, one per qubit.
     entangler : {'cnot', 'cz', None}, optional
-        Nearest-neighbour entangling gate type.
+        Nearest-neighbour entangling gate; ``None`` omits entanglement.
     depth : int, optional
-        Number of entangling and data-reuploading repetitions.
+        Number of interleaved entangling and re-encoding layers.
 
     Returns
     -------
     numpy.ndarray of float, shape (n_samples, n_samples)
-        Pairwise fidelity Gram matrix. Its diagonal entries equal one up to
-        numerical precision because the encoded states are normalized.
+        Fidelity Gram matrix.
     """
     states = compute_statevectors(
         X,

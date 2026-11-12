@@ -1,9 +1,4 @@
-"""Spectral diagnostics for fidelity quantum-kernel Gram matrices.
-
-This module computes eigenvalue-based measures of matrix rank, spectral
-concentration, and low-rank approximation quality, together with basic
-statistics of off-diagonal kernel entries.
-"""
+"""Spectral diagnostics for finite fidelity quantum-kernel Gram matrices."""
 
 import numpy as np
 
@@ -13,35 +8,33 @@ def spectral_metrics(
     rank_tol=1e-10,
     low_rank_values=(1, 2, 3, 4, 5, 6)
 ):
-    """Compute spectral diagnostics for a kernel Gram matrix.
+    """Compute spectral and low-rank diagnostics of a fidelity Gram matrix.
 
     Effective rank is the participation ratio,
     ``(sum(lambda))**2 / sum(lambda**2)``. Low-rank errors are relative
-    Frobenius norms of the eigenvalue tails.
+    Frobenius norms of truncated eigenvalue tails.
 
     Parameters
     ----------
     K : numpy.ndarray
         Symmetric positive semidefinite Gram matrix of shape ``(n, n)``.
     rank_tol : float, optional
-        Absolute eigenvalue threshold for numerical rank (default ``1e-10``).
+        Absolute eigenvalue tolerance (default: ``1e-10``).
     low_rank_values : iterable of int, optional
         Approximation ranks; values greater than ``n`` are skipped.
 
     Returns
     -------
     dict
-        ``n``, ``rank``, ``effective_rank``, ``eigenvalues``,
-        ``normalised_eigenvalues``, ``spectral_weights``, ``largest_weight``,
-        ``cumulative_weights``, ``low_rank_errors``, ``offdiag_mean``, and
-        ``offdiag_std``.
+        Spectral quantities, low-rank errors, and off-diagonal statistics.
 
     Notes
     -----
-    Eigenvalues are in descending order and values with absolute magnitude
-    below ``rank_tol`` are set to zero. ``normalised_eigenvalues`` is scaled
-    by ``n``; ``spectral_weights`` is scaled by the eigenvalue sum.
-    Assumes a valid, nonzero Gram matrix with at least two samples.
+    Eigenvalues are sorted in descending order. Values with absolute
+    magnitude below ``rank_tol`` are set to zero; numerical rank counts
+    eigenvalues greater than ``rank_tol``. ``normalised_eigenvalues`` uses
+    division by ``n``; ``spectral_weights`` uses division by the trace.
+    Assumes a nonzero Gram matrix with at least two samples.
     """
 
     n = K.shape[0]
@@ -53,13 +46,11 @@ def spectral_metrics(
     trace = np.sum(eigenvalues)
     numerical_rank = np.sum(eigenvalues > rank_tol)
 
-    # Participation ratio of the eigenvalue spectrum.
     effective_rank = trace**2 / np.sum(eigenvalues**2)
     spectral_weights = eigenvalues / trace
     largest_weight = spectral_weights[0]
     cumulative_weights = np.cumsum(spectral_weights)
 
-    # Relative Frobenius errors of truncated spectral approximations.
     denominator = np.sum(eigenvalues**2)
     low_rank_errors = {}
     for r in low_rank_values:
@@ -67,7 +58,6 @@ def spectral_metrics(
             residual = np.sum(eigenvalues[r:]**2)
             low_rank_errors[r] = np.sqrt(residual / denominator)
 
-    # Statistics over distinct pairs of input samples.
     upper = np.triu_indices(n, k=1)
     off_diagonal = K[upper]
     offdiag_mean = np.mean(off_diagonal)

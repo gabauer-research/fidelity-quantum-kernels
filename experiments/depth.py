@@ -1,13 +1,8 @@
-"""Depth-dependent spectra of statevector-based fidelity quantum kernels.
+"""Depth-dependent spectral analysis of fidelity quantum kernels.
 
-Compare a separable feature map with CNOT- and CZ-entangling feature maps at
-entangling depths one through five. The study uses a fixed Cartesian grid and
-an ensemble of uniformly sampled datasets to assess the sensitivity of the
-spectral diagnostics to input sampling.
-
-The same input dataset is used for all circuit variants within each experiment
-or random seed. The separable architecture at depth zero provides a reference
-rather than an entangling-depth measurement.
+Compare separable, interleaved CNOT, and CZ feature maps on a Cartesian
+product grid and 20 uniform input samples. Inputs are shared across circuit
+variants; increasing depth also increases the number of encoding layers.
 """
 
 from pathlib import Path
@@ -21,7 +16,6 @@ from qfk.kernels import fidelity_gram_matrix
 from qfk.spectral import spectral_metrics
 
 
-# Experiment settings
 POINTS_PER_DIM = 5
 INPUT_DIMENSION = 2
 N_SAMPLES = 25
@@ -64,16 +58,7 @@ def evaluate_variant(X, name, entangler, depth, seed=None):
 
 
 def grid_depth_study():
-    """Compute depth-dependent metrics and spectra on a 5-by-5 input grid.
-
-    Returns
-    -------
-    pandas.DataFrame
-        One row for each of the eleven circuit configurations.
-    pandas.DataFrame
-        Eigenvalue spectra in long format, indexed by configuration and
-        descending eigenvalue position.
-    """
+    """Return per-configuration metrics and spectra for the 5-by-5 grid."""
     X = cartesian_grid(points_per_dim=POINTS_PER_DIM, d=INPUT_DIMENSION)
     rows = []
     spectrum_rows = []
@@ -98,18 +83,10 @@ def grid_depth_study():
 
 
 def random_depth_study():
-    """Repeat the depth comparison on twenty seeded uniform datasets.
+    """Return per-seed metrics and depth-wise summaries for uniform inputs.
 
-    For each seed, the same 25 two-dimensional inputs are evaluated for the
-    separable reference and all entangling configurations. Standard deviations
-    use pandas' sample standard deviation (``ddof=1``).
-
-    Returns
-    -------
-    pandas.DataFrame
-        Metrics for every seed and circuit configuration.
-    pandas.DataFrame
-        Mean and standard deviation grouped by circuit type and depth.
+    Each seed shares the same input sample across circuit variants.
+    Standard deviations use the pandas default (``ddof=1``).
     """
     rows = []
 
@@ -123,9 +100,7 @@ def random_depth_study():
         )
 
         for name, entangler, depth in circuit_variants():
-            row, metrics = evaluate_variant(
-                X, name, entangler, depth, seed=seed
-            )
+            row, metrics = evaluate_variant(X, name, entangler, depth, seed=seed)
             row.update({
                 f"epsilon_{r}": metrics["low_rank_errors"].get(r)
                 for r in (3, 5)
@@ -189,9 +164,7 @@ def plot_grid_metrics(raw, output_dir):
 
 def plot_random_metrics(summary, output_dir):
     """Save across-seed mean curves with standard-deviation error bars."""
-    baseline = summary.loc[
-        summary["entangler"] == "Separable"
-    ].iloc[0]
+    baseline = summary.loc[summary["entangler"] == "Separable"].iloc[0]
 
     plot_specs = (
         (
